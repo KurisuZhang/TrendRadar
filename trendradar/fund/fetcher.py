@@ -1,8 +1,8 @@
 # coding=utf-8
 """
-基金估值监控模块
+基金/股票估值监控模块
 
-从东方财富（天天基金）API 获取基金今日估算涨跌幅，
+从东方财富 API 获取基金今日估算涨跌幅和股票实时行情，
 格式化为 Markdown 字符串块，附加在推送消息末尾。
 """
 
@@ -15,11 +15,15 @@ import yaml
 
 
 _UUID_FILE = Path("output/.fund_uuid")
-_API_URL = (
+_FUND_API_URL = (
     "https://fundmobapi.eastmoney.com/FundMNewApi/FundMNFInfo"
     "?pageIndex=1&pageSize=200"
     "&plat=Android&appType=ttjj&product=EFund&Version=1"
     "&deviceid={deviceid}&Fcodes={fcodes}"
+)
+_STOCK_API_URL = (
+    "https://push2.eastmoney.com/api/qt/ulist.np/get"
+    "?fltt=2&invt=2&fields=f2,f3,f12,f14&secids={secids}"
 )
 
 
@@ -114,37 +118,50 @@ def _build_fund_line(fund_cfg: dict, api_item: Optional[dict]) -> str:
     return line
 
 
+def _get_secid(code: str) -> str:
+    """根据股票代码推断东方财富 secid 前缀（沪=1, 深/北=0）"""
+    return f"1.{code}" if code.startswith("6") else f"0.{code}"
+
+
+def _build_stock_line(stock_cfg: dict, api_item: Optional[dict]) -> str:
+    """为单只股票构造一行展示文本。"""
+    code = stock_cfg.get("code", "")
+    name = stock_cfg.get("name", code)
+
+    if api_item is None:
+        return f"⚠️ {name} ({code})　数据暂不可用"
+
+    price = api_item.get("f2")
+    chg = api_item.get("f3")
+
+    change_str = _fmt_change(str(chg) if chg is not None else "")
+    price_str = f"{price:.2f}" if isinstance(price, (int, float)) else "--"
+    return f"{change_str} {name} ({code})　{price_str}"
+
+
 def fetch_fund_block(
     config_path: str = "config/fund_watch.yaml",
     proxy_url: Optional[str] = None,
 ) -> Optional[str]:
     """
-    获取基金估值 Markdown 块，用于追加到推送消息末尾。
+    获取基金/股票行情 Markdown 块，用于追加到推送消息末尾。
 
     返回值语义：
     - None            → enabled=false 或配置文件不存在，调用方不追加任何内容
-    - 非空字符串      → 格式化好的 Markdown 块（含标题行 + 各基金行），直接追加
+    - 非空字符串      → 格式化好的 Markdown 块，直接追加
     """
     cfg = _load_config(config_path)
     if cfg is None:
-        # 配置文件不存在，静默跳过
         return None
 
     if not cfg.get("enabled", True):
-        # enabled: false，静默跳过
         return None
 
     funds = cfg.get("funds") or []
-    if not funds:
-        return "📊 基金监控：未配置任何代码"
+    stocks = cfg.get("stocks") or []
 
-    # 构造请求
-    fcodes = ",".join(f["code"] for f in funds if f.get("code"))
-    if not fcodes:
-        return "📊 基金监控：未配置任何代码"
-
-    deviceid = _get_or_create_uuid()
-    url = _API_URL.format(deviceid=deviceid, fcodes=fcodes)
+    if not funds and not stocks:
+        return "📊 基金/股票监控：未配置任何代码"
 
     proxies = None
     if proxy_url:
@@ -159,38 +176,59 @@ def fetch_fund_block(
         "Accept": "application/json",
     }
 
-    try:
-        resp = requests.get(url, headers=headers, proxies=proxies, timeout=10)
-        resp.raise_for_status()
-        data = resp.json()
-    except Exception as e:
-        print(f"[基金] API 请求失败: {e}")
-        return "📊 基金估值：获取失败，请稍后重试"
+    lines = []
 
-    # 解析：构建 code → item 映射
-    items_list = data.get("Datas") or []
-    code_map: dict = {}
-    for item in items_list:
-        fcode = item.get("FCODE", "")
-        if fcode:
-            code_map[fcode] = item
+    # ── 基金部分 ──────────────────────────────────────────
+    if funds:
+        fcodes = ",".join(f["code"] for f in funds if f.get("code"))
+        if fcodes:
+            deviceid = _get_or_create_uuid()
+            url = _FUND_API_URL.format(deviceid=deviceid, fcodes=fcodes)
+            try:
+                resp = requests.get(url, headers=headers, proxies=proxies, timeout=10)
+                resp.raise_for_status()
+                data = resp.json()
+                items_list = data.get("Datas") or []
+                code_map = {item["FCODE"]: item for item in items_list if item.get("FCODE")}
 
-    # 格式化标题行（取任意一条的估算时间作为整体时间）
-    sample_time = ""
-    for item in items_list:
-        gztime = item.get("GZTIME", "")
-        if gztime and len(gztime) >= 16:
-            sample_time = gztime[11:16]
-            break
+                sample_time = ""
+                for item in items_list:
+                    gztime = item.get("GZTIME", "")
+                    if gztime and len(gztime) >= 16:
+                        sample_time = gztime[11:16]
+                        break
 
-    header = f"📊 基金估值"
-    if sample_time:
-        header += f" · {sample_time}"
+                fund_header = "📊 基金估值"
+                if sample_time:
+                    fund_header += f" · {sample_time}"
+                lines.append(fund_header)
+                for fund_cfg in funds:
+                    code = fund_cfg.get("code", "")
+                    lines.append(_build_fund_line(fund_cfg, code_map.get(code)))
+            except Exception as e:
+                print(f"[基金] API 请求失败: {e}")
+                lines.append("📊 基金估值：获取失败")
 
-    lines = [header]
-    for fund_cfg in funds:
-        code = fund_cfg.get("code", "")
-        api_item = code_map.get(code)
-        lines.append(_build_fund_line(fund_cfg, api_item))
+    # ── 股票部分 ──────────────────────────────────────────
+    if stocks:
+        secids = ",".join(_get_secid(s["code"]) for s in stocks if s.get("code"))
+        if secids:
+            url = _STOCK_API_URL.format(secids=secids)
+            try:
+                resp = requests.get(url, headers=headers, proxies=proxies, timeout=10)
+                resp.raise_for_status()
+                data = resp.json()
+                diff = (data.get("data") or {}).get("diff") or []
+                code_map = {item["f12"]: item for item in diff if item.get("f12")}
 
-    return "\n".join(lines)
+                if lines:
+                    lines.append("")  # 基金和股票之间空一行
+                lines.append("📈 股票行情")
+                for stock_cfg in stocks:
+                    code = stock_cfg.get("code", "")
+                    lines.append(_build_stock_line(stock_cfg, code_map.get(code)))
+            except Exception as e:
+                print(f"[股票] API 请求失败: {e}")
+                lines.append("📈 股票行情：获取失败")
+
+    return "\n".join(lines) if lines else None
