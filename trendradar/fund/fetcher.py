@@ -6,8 +6,6 @@
 格式化为 Markdown 字符串块，附加在推送消息末尾。
 """
 
-import random
-import string
 import uuid
 from pathlib import Path
 from typing import Optional
@@ -99,7 +97,10 @@ def _build_fund_line(fund_cfg: dict, api_item: Optional[dict]) -> str:
         nav = api_item.get("NAV", "")
         navchgrt = api_item.get("NAVCHGRT", "")
         change_str = _fmt_change(navchgrt)
-        return f"{change_str.split(' ')[0]} {name} ({code})　{change_str.split(' ', 1)[1] if ' ' in change_str else '--'}（非交易日）"
+        parts = change_str.split(' ', 1)
+        emoji = parts[0]
+        pct_text = parts[1] if len(parts) > 1 else '--'
+        return f"{emoji} {name} ({code})　{pct_text}（非交易日）"
 
     change_str = _fmt_change(gszzl)
     # 提取时间部分（GZTIME 格式如 "2026-04-25 14:30:00"，只取 HH:MM）
