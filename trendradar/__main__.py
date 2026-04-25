@@ -28,6 +28,7 @@ from trendradar.storage import convert_crawl_results_to_news_data
 from trendradar.utils.time import DEFAULT_TIMEZONE, is_within_days, calculate_days_old
 from trendradar.ai import AIAnalyzer, AIAnalysisResult
 from trendradar.core.scheduler import ResolvedSchedule
+from trendradar.fund.fetcher import fetch_fund_block
 
 
 def _parse_version(version_str: str) -> Tuple[int, int, int]:
@@ -978,6 +979,8 @@ class NewsAnalyzer:
 
             # 使用 NotificationDispatcher 发送到所有渠道
             # RSS/独立展示区数据已在分析流水线中翻译过，跳过重复翻译（仅翻译热榜 report_data）
+            # 获取基金估值区块（None 表示跳过，不追加任何内容）
+            fund_block = fetch_fund_block(proxy_url=self.proxy_url)
             dispatcher = self.ctx.create_notification_dispatcher()
             results = dispatcher.dispatch_all(
                 report_data=report_data,
@@ -991,6 +994,7 @@ class NewsAnalyzer:
                 ai_analysis=ai_result,
                 standalone_data=standalone_data,
                 skip_translation=True,
+                fund_block=fund_block,
             )
 
             if not results:
