@@ -152,6 +152,7 @@ def split_content_into_batches(
     ai_stats: Optional[Dict] = None,
     report_type: str = "热点分析报告",
     show_new_section: bool = True,
+    fund_block: Optional[str] = None,
 ) -> List[str]:
     """分批处理消息内容，确保词组标题+至少第一条新闻的完整性（支持热榜+RSS合并+AI分析+独立展示区）
 
@@ -960,6 +961,12 @@ def split_content_into_batches(
     # 完成最后批次
     if current_batch_has_content:
         _safe_append_batch(batches, current_batch, base_footer, max_bytes, base_header)
+
+    # 追加基金估值区块到最后一批消息末尾
+    if fund_block is not None and batches:
+        batches[-1] = batches[-1] + "\n\n---\n" + fund_block
+    elif fund_block is not None:
+        batches = [fund_block]
 
     return batches
 
