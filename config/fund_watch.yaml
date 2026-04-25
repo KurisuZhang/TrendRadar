@@ -9,4 +9,6 @@ funds:
     name: "招商中证白酒"
 
 # stocks 字段预留，本期不实现
-stocks: []
+stocks:
+  - code: "000001"
+    name: "大A"
