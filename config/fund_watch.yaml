@@ -1,0 +1,12 @@
+# 基金/股票估值监控配置
+# enabled: false 时静默跳过，不在推送消息中出现任何基金内容
+enabled: true
+
+funds:
+  - code: "110022"
+    name: "易方达消费行业"
+  - code: "161725"
+    name: "招商中证白酒"
+
+# stocks 字段预留，本期不实现
+stocks: []
