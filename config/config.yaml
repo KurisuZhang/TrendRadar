@@ -41,7 +41,7 @@ app:
 # ===============================================================
 schedule:
   enabled: true                         # 是否启用调度系统
-  preset: "office_hours"             # 预设模板名称（见上方说明）
+  preset: "custom"             # 预设模板名称（见上方说明）
 
 
 # ===============================================================
@@ -267,11 +267,11 @@ display:
     - standalone                       # 4️⃣ 独立展示区
     - new_items                       # 1️⃣ 新增热点区域
   regions:
-    hotlist: true # 热榜区域（关键词匹配 / AI 智能筛选）
-    ai_analysis: true # AI 分析区域
-    rss: true # RSS 订阅区域
+    hotlist: false # 热榜区域（关键词匹配 / AI 智能筛选）
+    ai_analysis: false # AI 分析区域
+    rss: false # RSS 订阅区域
     standalone: true # 独立展示区（完整热榜/RSS，不受关键词过滤）
-    new_items: true # 新增热点区域（含热榜新增 + RSS 新增）
+    new_items: false # 新增热点区域（含热榜新增 + RSS 新增）
   standalone:
     platforms: ["zhihu","douyin","toutiao"] # 热榜平台 ID 列表（如 ["zhihu", "weibo"]）
     rss_feeds: []                     # RSS 源 ID 列表（如 ["hacker-news"]）

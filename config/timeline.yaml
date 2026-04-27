@@ -459,31 +459,20 @@ custom:
   # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   periods:
 
-    deep_quiet:
-      name: "深夜静默"
-      start: "23:00"
-      end: "06:00"                 # 23:00 → 次日 06:00（跨日时间段）
-      # frequency_file: "xxx.txt"               # 关键词文件（可选，位于 config/custom/keyword/）
-      # interests_file: "xxx.txt"                # AI 兴趣文件（可选，位于 config/custom/ai/）
-      # filter_method: "keyword"                # 筛选策略（可选: keyword | ai，不填用全局 filter.method）
-      collect: true                # 夜间继续采集数据
-      analyze: true                # 夜间可以跑 AI 分析（反正不推送）
-      push: false                  # 深夜不推送，避免打扰
-
     weekday_morning:
       name: "工作日早间"
-      start: "08:00"
+      start: "09:00"
       end: "10:00"                 # 跨度 2h，留足触发裕量
       # frequency_file: "xxx.txt"               # 关键词文件（可选，位于 config/custom/keyword/）
       # interests_file: "xxx.txt"                # AI 兴趣文件（可选，位于 config/custom/ai/）
       # filter_method: "keyword"                # 筛选策略（可选: keyword | ai，不填用全局 filter.method）
       push: true                   # 早上推送一次
-      report_mode: "incremental"   # 只推新增内容
+      report_mode: "current"   # 只推新增内容
       # once 继承 default（push: true）→ 窗口内只推一次
 
     weekend_morning:
       name: "周末早间"
-      start: "10:00"
+      start: "11:00"
       end: "12:00"                 # 跨度 2h
       # frequency_file: "xxx.txt"               # 关键词文件（可选，位于 config/custom/keyword/）
       # interests_file: "xxx.txt"                # AI 兴趣文件（可选，位于 config/custom/ai/）
@@ -492,32 +481,29 @@ custom:
       report_mode: "daily"         # 周末看全天汇总
       # once 继承 default（push: true）→ 窗口内只推一次
 
-    evening_summary:
-      name: "晚间汇总"
-      start: "19:00"
-      end: "21:00"
-      # frequency_file: "xxx.txt"               # 关键词文件（可选，位于 config/custom/keyword/）
-      # interests_file: "xxx.txt"                # AI 兴趣文件（可选，位于 config/custom/ai/）
-      # filter_method: "keyword"                # 筛选策略（可选: keyword | ai，不填用全局 filter.method）
-      analyze: true                # 晚间做 AI 分析
-      ai_mode: "daily"             # AI 也分析全天内容
-      push: true                   # 晚间推送
-      report_mode: "daily"         # 当日全部新闻汇总
-      # once 继承 default（analyze: true, push: true）→ 只分析/推送一次
-
-
-  # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  # 第 2 步：把积木块拼成日计划
-  #
-  # 把上面定义的时间段组合成一天的安排。
-  # 你可以定义多个日计划（如 workday 和 weekend），
-  # 然后在第 3 步的 week_map 中分配给不同的星期。
-  # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    work_day_afternoon:
+      name: "工作日下午"
+      start: "13:00"
+      end: "14:00"
+      collect: true
+      analyze: false
+      push: true
+      report_mode: incremental
+      ai_mode: incremental
+    work_day_close:
+      name: "工作日收盘"
+      start: "14:00"
+      end: "14:50"
+      collect: true
+      analyze: false
+      push: true
+      report_mode: incremental
+      ai_mode: incremental
   day_plans:
     workday:                       # 工作日计划
-      periods: ["deep_quiet", "weekday_morning", "evening_summary"]
+      periods: ["weekday_morning", "work_day_afternoon", "work_day_close"]
     weekend:                       # 周末计划（用 weekend_morning 替换 weekday_morning）
-      periods: ["deep_quiet", "weekend_morning", "evening_summary"]
+      periods: ["weekend_morning"]
 
 
   # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
