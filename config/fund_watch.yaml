@@ -3,10 +3,14 @@
 enabled: true
 
 funds:
-  - code: "110022"
-    name: "易方达消费行业"
-  - code: "161725"
-    name: "招商中证白酒"
+  - code: "159305"
+    name: "储能电池ETF广发"
+  - code: "011555"
+    name: "海富通欣利混合C"
+  - code: "011609"
+    name: "易方达上证科创50联接C"
+  - code: "017763"
+    name: "银河领先债券C"
 
 # stocks 字段预留，本期不实现
 stocks:
